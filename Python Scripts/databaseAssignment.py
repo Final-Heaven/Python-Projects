@@ -34,5 +34,5 @@ for x in fileList:
         with conn:
             cur = conn.cursor()
             cur.execute("INSERT INTO tbl_example (col_data) VALUES (?)", (x,))
-            print(x)
+            print(x) # Prints results to console
 conn.close() # Closes the connection
