@@ -6,8 +6,8 @@ import sqlite3
 
 # Be sure to import our other modules
 # so we can have access to them
-import phonebook_main
-import phonebook_gui
+import tracking_main
+import tracking_gui
 
 
 def center_window(self, w, h): # Pass in the tkinter frame (master) reference and the w and h
@@ -30,16 +30,17 @@ def ask_quit(self):
 
 #==============================================================================================
 def create_db(self):
-    conn = sqlite3.connect('db_phonebook.db')
+    conn = sqlite3.connect('db_tracking.db')
     with conn:
         cur = conn.cursor()
-        cur.execute("CREATE TABLE if not exists tbl_phonebook( \
+        cur.execute("CREATE TABLE if not exists tbl_tracking( \
             ID INTEGER PRIMARY KEY AUTOINCREMENT, \
             col_fname TEXT, \
             col_lname TEXT, \
             col_fullname TEXT, \
             col_phone TEXT, \
-            col_email TEXT \
+            col_email TEXT, \
+            col_course TEXT \
             );")
         # You must commit() to save changes and close the database connection
         conn.commit()
@@ -48,19 +49,19 @@ def create_db(self):
 
 
 def first_run(self):
-    conn = sqlite3.connect('db_phonebook.db')
+    conn = sqlite3.connect('db_tracking.db')
     with conn:
         cur = conn.cursor()
         cur,count = count_records(cur)
         if count < 1:
-            cur.execute("""INSERT INTO tbl_phonebook (col_fname, col_lname, col_fullname, col_phone, col_email) VALUES (?, ?, ?, ?, ?)""", ('John', 'Doe', 'John Doe', '111-111-1111', 'jdoe@email.com'))
+            cur.execute("""INSERT INTO tbl_tracking (col_fname, col_lname, col_fullname, col_phone, col_email, col_course) VALUES (?, ?, ?, ?, ?, ?)""", ('John', 'Doe', 'John Doe', '111-111-1111', 'jdoe@email.com', 'Computer Science'))
             conn.commit()
     conn.close()
 
 
 def count_records(cur):
     count = ""
-    cur.execute("""SELECT COUNT(*) FROM tbl_phonebook""")
+    cur.execute("""SELECT COUNT(*) FROM tbl_tracking""")
     count = cur.fetchone()[0]
     return cur,count
 
@@ -71,12 +72,12 @@ def onSelect(self, event):
     varList = event.widget
     select = varList.curselection()[0]
     value = varList.get(select)
-    conn = sqlite3.connect('db_phonebook.db')
+    conn = sqlite3.connect('db_tracking.db')
     with conn:
         cursor = conn.cursor()
-        cursor.execute("""SELECT col_fname, col_lname, col_phone, col_email FROM tbl_phonebook WHERE col_fullname = (?)""", [value])
+        cursor.execute("""SELECT col_fname, col_lname, col_phone, col_email, col_course FROM tbl_tracking WHERE col_fullname = (?)""", [value])
         varBody = cursor.fetchall()
-        # This returns a tuple and we can slice it into 4 parts using data[] during the iteration
+        # This returns a tuple and we can slice it into 5 parts using data[] during the iteration
         for data in varBody:
             self.txt_fname.delete(0, END)
             self.txt_fname.insert(0, data[0])
@@ -86,6 +87,8 @@ def onSelect(self, event):
             self.txt_phone.insert(0, data[2])
             self.txt_email.delete(0, END)
             self.txt_email.insert(0, data[3])
+            self.txt_course.delete(0, END)
+            self.txt_course.insert(0, data[4])
 
 
 def addToList(self):
@@ -100,19 +103,20 @@ def addToList(self):
     print("var_fullname: {}".format(var_fullname))
     var_phone = self.txt_phone.get().strip()
     var_email = self.txt_email.get().strip()
+    var_course = self.txt_course.get().strip()
     if not "@" or not "." in var_email: # Will use this soon
         print("Incorrect email format!!!")
-    if (len(var_fname) > 0) and (len(var_lname) > 0) and (len(var_phone) > 0) and (len(var_email) > 0): # Enforce the user to provide both names
-        conn = sqlite3.connect('db_phonebook.db')
+    if (len(var_fname) > 0) and (len(var_lname) > 0) and (len(var_phone) > 0) and (len(var_email) > 0) and (len(var_course) > 0): # Enforce the user to provide both names
+        conn = sqlite3.connect('db_tracking.db')
         with conn:
             cursor = conn.cursor()
             # Check the database for existence of the fullname, if so we will alert user and disregard request
-            cursor.execute("""SELECT COUNT(col_fullname) FROM tbl_phonebook WHERE col_fullname = '{}'""".format(var_fullname))#,(var_fullname))
+            cursor.execute("""SELECT COUNT(col_fullname) FROM tbl_tracking WHERE col_fullname = '{}'""".format(var_fullname))#,(var_fullname))
             count = cursor.fetchone()[0]
             chkName = count
             if chkName == 0: # If this is 0 then there is no existence of the fullname and we can add new data
                 print("chkName: {}".format(chkName))
-                cursor.execute("""INSERT INTO tbl_phonebook (col_fname, col_lname, col_fullname, col_phone, col_email) VALUES (?, ?, ?, ?, ?)""", (var_fname, var_lname, var_fullname, var_phone, var_email))
+                cursor.execute("""INSERT INTO tbl_tracking (col_fname, col_lname, col_fullname, col_phone, col_email, col_course) VALUES (?, ?, ?, ?, ?, ?)""", (var_fname, var_lname, var_fullname, var_phone, var_email, var_course))
                 self.lstList1.insert(END, var_fullname) # Update listbox with the new fullname
                 onClear(self) # Call the function to clear all of the textboxes
             else:
@@ -121,25 +125,25 @@ def addToList(self):
         conn.commit()
         conn.close()
     else:
-        messagebox.showerror("Missing Text Error", "Please ensure that there is data in all four fields.")
+        messagebox.showerror("Missing Text Error", "Please ensure that there is data in all five fields.")
 
 
 def onDelete(self):
     var_select = self.lstList1.get(self.lstList1.curselection()) # Listbox's selected value
-    conn = sqlite3.connect('db_phonebook.db')
+    conn = sqlite3.connect('db_tracking.db')
     with conn:
         cur = conn.cursor()
         # Check count to ensure that this is not the last record in
         # the database... cannot delete last record or we will get an error
-        cur.execute("""SELECT COUNT(*) FROM tbl_phonebook""")
+        cur.execute("""SELECT COUNT(*) FROM tbl_tracking""")
         count = cur.fetchone()[0]
         if count > 1:
             confirm = messagebox.askokcancel("Delete Confirmation", "All information associated with, ({}) \nwill be permanently deleted from the database. \n\nProceed with the deletion request?".format(var_select))
             if confirm:
-                conn = sqlite3.connect('db_phonebook.db')
+                conn = sqlite3.connect('db_tracking.db')
                 with conn:
                     cursor = conn.cursor()
-                    cursor.execute("""DELETE FROM tbl_phonebook WHERE col_fullname = '{}'""".format(var_select))
+                    cursor.execute("""DELETE FROM tbl_tracking WHERE col_fullname = '{}'""".format(var_select))
                 onDeleted(self) # Call the function to clear all of the textboxes and the selected index of listbox
 ######              onRefresh(self) # Update the listbox of the changes
                 conn.commit()
@@ -154,6 +158,7 @@ def onDeleted(self):
     self.txt_lname.delete(0, END)
     self.txt_phone.delete(0, END)
     self.txt_email.delete(0, END)
+    self.txt_course.delete(0, END)
 ## onRefresh(self) # Update the listbox of the changes
     try:
         index = self.lstList1.curselection()[0]
@@ -168,19 +173,20 @@ def onClear(self):
     self.txt_lname.delete(0, END)
     self.txt_phone.delete(0, END)
     self.txt_email.delete(0, END)
+    self.txt_course.delete(0, END)
 
 
 def onRefresh(self):
     # Populate the listbox, coinciding with the database
     self.lstList1.delete(0, END)
-    conn = sqlite3.connect('db_phonebook.db')
+    conn = sqlite3.connect('db_tracking.db')
     with conn:
         cursor = conn.cursor()
-        cursor.execute("""SELECT COUNT(*) FROM tbl_phonebook""")
+        cursor.execute("""SELECT COUNT(*) FROM tbl_tracking""")
         count = cursor.fetchone()[0]
         i = 0
         while i < count:
-            cursor.execute("""SELECT col_fullname FROM tbl_phonebook""")
+            cursor.execute("""SELECT col_fullname FROM tbl_tracking""")
             varList = cursor.fetchall()[i]
             for item in varList:
                 self.lstList1.insert(0, str(item))
@@ -195,39 +201,43 @@ def onUpdate(self):
     except:
         messagebox.showinfo("Missing selection", "no name was selected from the list box. \nCancelling the Update request.")
         return
-    # The user will only be allowed to update changes for phone and emails.
+    # The user will only be allowed to update changes for phone, emails, and the current course.
     # For name changes, the user will need to delete the entire record and start over.
     var_phone = self.txt_phone.get().strip() # Normalize the data to maintain database integrity
     var_email = self.txt_email.get().strip()
-    if (len(var_phone) > 0) and (len(var_email) > 0): # Ensure that there is data present
-        conn = sqlite3.connect('db_phonebook.db')
+    var_course = self.txt_course.get().strip()
+    if (len(var_phone) > 0) and (len(var_email) > 0) and (len(var_course) > 0): # Ensure that there is data present
+        conn = sqlite3.connect('db_tracking.db')
         with conn:
             cur = conn.cursor()
             # Count records to see if the user's changes are already in
             # the database... meaning, there are no changes to update.
-            cur.execute("""SELECT COUNT(col_phone) FROM tbl_phonebook WHERE col_phone = '{}'""".format(var_phone))
+            cur.execute("""SELECT COUNT(col_phone) FROM tbl_tracking WHERE col_phone = '{}'""".format(var_phone))
             count = cur.fetchone()[0]
             print(count)
-            cur.execute("""SELECT COUNT(col_email) FROM tbl_phonebook WHERE col_email = '{}'""".format(var_email))
+            cur.execute("""SELECT COUNT(col_email) FROM tbl_tracking WHERE col_email = '{}'""".format(var_email))
             count2 = cur.fetchone()[0]
             print(count2)
-            if count == 0 or count2 == 0: # If proposed changes are not already in the database, then proceed
-                response = messagebox.askokcancel("Update Request", "The following changes ({}) and ({}) will be implemented for ({}). \n\nProceed with the update request?".format(var_phone, var_email, var_value))
+            cur.execute("""SELECT COUNT(col_course) FROM tbl_tracking WHERE col_course = '{}'""".format(var_course))
+            count3 = cur.fetchone()[0]
+            print(count3)
+            if count == 0 or count2 == 0 or count3 == 0: # If proposed changes are not already in the database, then proceed
+                response = messagebox.askokcancel("Update Request", "The following changes ({}), ({}), and ({}) will be implemented for ({}). \n\nProceed with the update request?".format(var_phone, var_email, var_course, var_value))
                 print(response)
                 if response:
                     with conn:
                         cursor = conn.cursor()
-                        cursor.execute("""UPDATE tbl_phonebook SET col_phone = '{0}', col_email = '{1}' WHERE col_fullname = '{2}'""".format(var_phone, var_email, var_value))
+                        cursor.execute("""UPDATE tbl_tracking SET col_phone = '{}', col_email = '{}', col_course = '{}' WHERE col_fullname = '{}'""".format(var_phone, var_email, var_course, var_value))
                         onClear(self)
                         conn.commit()
                 else:
                     messagebox.showinfo("Cancel request", "No changes have been made to ({}).".format(var_value))
             else:
-                messagebox.showinfo("No changes detected", "Both ({}) and ({}) \nalready exist in the database for this name. \n\nYour update request has been cancelled.".format(var_phone, var_email))
+                messagebox.showinfo("No changes detected", "({}), ({}) and ({}) \nalready exist in the database for this name. \n\nYour update request has been cancelled.".format(var_phone, var_email, var_course))
             onClear(self)
         conn.close()
     else:
-        messagebox.showerror("Missing information", "Please select a name from the list. \nThen edit the phone or email information.")
+        messagebox.showerror("Missing information", "Please select a name from the list. \nThen edit the phone, email, or course information.")
     onClear(self)
 
 
