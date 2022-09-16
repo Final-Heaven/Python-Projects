@@ -6,9 +6,9 @@
 #                 using Tkinter Parent and Child relationships.
 
 
-# Might need to import something else?----------------------------------------------
 from tkinter import *
 import tkinter as tk
+from tkinter import messagebox
 
 # Be sure to import our other modules so we can have access to them
 import phonebook_gui
@@ -31,6 +31,7 @@ class ParentWindow(Frame):
         # This protocol method is a tkinter build-in method to catch if
         # the user clicks the upper corner, "X" on Windows OS.
         self.master.protocol("WM_DELETE_WINDOW", lambda: phonebook_func.ask_quit(self))
+        arg = self.master
 
         # Load in the GUI widgets from a separate module,
         # keeping your code compartmentalized and cluster free
