@@ -71,11 +71,21 @@ class ParentWindow(Frame):
         destination = self.destination_dir.get()
         # Gets a list of files in the source directory
         source_files = os.listdir(source)
+        # Gets current time
+        current_time = datetime.datetime.now()
+        # Creates variable equal to 24 hours ago so we can compare to time modified
+        minus_24 = current_time - datetime.timedelta(hours = 24)
         # Runs through each file in the source directory
         for i in source_files:
-            # Moves each file from the source to the destination
-            shutil.move(source + '/' + i, destination)
-            print(i + ' was successfully transferred.')
+            # Gets time of creation or last modification of file
+            time_modified = datetime.datetime.fromtimestamp(os.path.getmtime(source + '/' + i))
+            # If time of creation or modification is more recent than 24 hours ago,
+            # perform move and notify the user.
+            if time_modified > minus_24:  
+                # Moves each file from the source to the destination
+                shutil.move(source + '/' + i, destination)
+                print(i + " was last created or modified: " + str(time_modified))
+                print(i + ' was successfully transferred.\n')
 
     # Creates function to exit program
     def exit_program(self):
